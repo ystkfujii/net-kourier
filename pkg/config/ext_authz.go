@@ -19,9 +19,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"net"
-	"os"
-	"strconv"
 	"time"
 
 	v3Cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -31,7 +28,6 @@ import (
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	httpOptions "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/kelseyhightower/envconfig"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
@@ -41,11 +37,6 @@ const (
 	// See https://en.wikipedia.org/wiki/Registered_port.
 	unixMaxPort = 65535
 )
-
-// ExternalAuthz is the configuration of external authorization.
-var ExternalAuthz = &ExternalAuthzConfig{
-	Enabled: false,
-}
 
 // ExternalAuthzConfig specifies parameters for external authorization configuration.
 type ExternalAuthzConfig struct {
@@ -81,42 +72,6 @@ type config struct {
 	Protocol         extAuthzProtocol `default:"grpc"`
 	PackAsBytes      bool             `default:"false"`
 	PathPrefix       string
-}
-
-func init() {
-	if host := os.Getenv("KOURIER_EXTAUTHZ_HOST"); host == "" {
-		// No ExtAuthz setup.
-		return
-	}
-
-	var env config
-	envconfig.MustProcess("KOURIER_EXTAUTHZ", &env)
-
-	if !isValidExtAuthzProtocol(env.Protocol) {
-		err := fmt.Errorf("protocol %s is invalid, must be in %+v", env.Protocol, extAuthzProtocols)
-		panic(err)
-	}
-
-	host, portStr, err := net.SplitHostPort(env.Host)
-	if err != nil {
-		panic(err)
-	}
-
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		panic(err)
-	}
-
-	if port > unixMaxPort {
-		// Bail out if we exceed the maximum port number.
-		panic(fmt.Sprintf("port %d bigger than %d", port, unixMaxPort))
-	}
-
-	ExternalAuthz = &ExternalAuthzConfig{
-		Enabled:    true,
-		Cluster:    extAuthzCluster(host, uint32(port), env.Protocol), //#nosec G115
-		HTTPFilter: externalAuthZFilter(&env),
-	}
 }
 
 const extAuthzClusterTypedExtensionProtocolOptionsHTTP = "envoy.extensions.upstreams.http.v3.HttpProtocolOptions"
