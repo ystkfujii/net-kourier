@@ -203,6 +203,8 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 		externalAuthz.Enabled = true
 		externalAuthz.Config = config
 
+		fmt.Printf("externalAuthz: %+v\n", externalAuthz)
+
 		return nil
 	}
 }
