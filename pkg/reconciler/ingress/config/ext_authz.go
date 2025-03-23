@@ -38,10 +38,10 @@ const (
 	unixMaxPort = 65535
 )
 
-// ExternalAuthzConfig specifies parameters for external authorization configuration.
+// ExternalAuthz specifies parameters for external authorization configuration.
 type ExternalAuthz struct {
 	Enabled bool
-	Config  externalAuthzConfig
+	Config  ExternalAuthzConfig
 }
 
 func (e *ExternalAuthz) Cluster() *v3Cluster.Cluster {
@@ -71,7 +71,7 @@ func isValidExtAuthzProtocol(protocol extAuthzProtocol) bool {
 	return ok
 }
 
-type externalAuthzConfig struct {
+type ExternalAuthzConfig struct {
 	Host             string
 	Port             uint32
 	FailureModeAllow bool
@@ -82,8 +82,8 @@ type externalAuthzConfig struct {
 	PathPrefix       string
 }
 
-func defaultExternalAuthzConfig() externalAuthzConfig {
-	return externalAuthzConfig{
+func defaultExternalAuthzConfig() ExternalAuthzConfig {
+	return ExternalAuthzConfig{
 		MaxRequestBytes: 8192,
 		Timeout:         2000,
 		Protocol:        extAuthzProtocolGRPC,
@@ -150,7 +150,7 @@ func externalAuthzCluster(host string, port uint32, protocol extAuthzProtocol) *
 
 var errPackAsBytesInvalidWithProtocolHTTP = errors.New("pack as bytes option cannot be set when using http protocol")
 
-func externalAuthzFilter(conf *externalAuthzConfig) *hcm.HttpFilter {
+func externalAuthzFilter(conf *ExternalAuthzConfig) *hcm.HttpFilter {
 	timeout := durationpb.New(time.Duration(conf.Timeout) * time.Millisecond)
 
 	extAuthConfig := &extAuthService.ExtAuthz{
