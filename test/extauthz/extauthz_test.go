@@ -22,6 +22,7 @@ package extauthz
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -65,6 +66,7 @@ func TestExtAuthz(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
+	fmt.Printf("DEBUG: resp.Body: %+v\n", resp.Body)
 	assert.Equal(t, resp.StatusCode, http.StatusForbidden)
 
 	// Prepare the request, this one should succeed

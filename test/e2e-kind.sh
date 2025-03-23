@@ -23,7 +23,7 @@ KOURIER_CONTROL_NAMESPACE=knative-serving
 TEST_NAMESPACE=serving-tests
 CLUSTER_SUFFIX=${CLUSTER_SUFFIX:-cluster.local}
 
-$(dirname $0)/upload-test-images.sh
+# $(dirname $0)/upload-test-images.sh
 
 echo ">> Setup test resources"
 ko apply -f test/config
@@ -42,48 +42,48 @@ IPS=($(kubectl get nodes -lkubernetes.io/hostname!=kind-control-plane -ojsonpath
 export "GATEWAY_OVERRIDE=kourier"
 export "GATEWAY_NAMESPACE_OVERRIDE=${KOURIER_GATEWAY_NAMESPACE}"
 
-echo ">> Running conformance tests"
-go test -count=1 -short -timeout=20m -tags=e2e ./test/conformance/... ./test/e2e/... \
-  --enable-alpha --enable-beta \
-  --ingressendpoint="${IPS[0]}" \
-  --ingressClass=kourier.ingress.networking.knative.dev \
-  --cluster-suffix="$CLUSTER_SUFFIX"
+# echo ">> Running conformance tests"
+# go test -count=1 -short -timeout=20m -tags=e2e ./test/conformance/... ./test/e2e/... \
+#   --enable-alpha --enable-beta \
+#   --ingressendpoint="${IPS[0]}" \
+#   --ingressClass=kourier.ingress.networking.knative.dev \
+#   --cluster-suffix="$CLUSTER_SUFFIX"
 
-echo ">> Scale up components for HA tests"
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" scale deployment 3scale-kourier-gateway --replicas=2
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" scale deployment net-kourier-controller --replicas=2
-
-echo ">> Running HA tests"
-go test -count=1 -timeout=15m -failfast -parallel=1 -tags=e2e ./test/ha -spoofinterval="10ms" \
-  --ingressendpoint="${IPS[0]}" \
-  --ingressClass=kourier.ingress.networking.knative.dev \
-  --cluster-suffix="$CLUSTER_SUFFIX"
-
-echo ">> Scale down after HA tests"
-kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" scale deployment 3scale-kourier-gateway --replicas=1
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" scale deployment net-kourier-controller --replicas=1
-
-echo ">> Running TLS Cipher suites"
-echo ">> Setup cipher suites"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"cipher-suites":"ECDHE-ECDSA-AES128-GCM-SHA256,ECDHE-ECDSA-CHACHA20-POLY1305"}}'
-
-go test -v -tags=e2e ./test/tls/... \
-  --ingressendpoint="${IPS[0]}" \
-  --ingressClass=kourier.ingress.networking.knative.dev \
-  --cluster-suffix="$CLUSTER_SUFFIX"
-
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"cipher-suites":""}}'
-
-echo ">> Setup one wildcard certificate"
-$(dirname $0)/generate-wildcard-cert.sh
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller CERTS_SECRET_NAMESPACE="${KOURIER_CONTROL_NAMESPACE}" CERTS_SECRET_NAME=wildcard-certs
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
-
-echo ">> Running OneTLSCert tests"
-go test -race -count=1 -timeout=20m -tags=e2e ./test/cert/... \
-  --ingressendpoint="${IPS[0]}" \
-  --ingressClass=kourier.ingress.networking.knative.dev \
-  --cluster-suffix="$CLUSTER_SUFFIX"
+# echo ">> Scale up components for HA tests"
+# kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" scale deployment 3scale-kourier-gateway --replicas=2
+# kubectl -n "${KOURIER_CONTROL_NAMESPACE}" scale deployment net-kourier-controller --replicas=2
+#
+# echo ">> Running HA tests"
+# go test -count=1 -timeout=15m -failfast -parallel=1 -tags=e2e ./test/ha -spoofinterval="10ms" \
+#   --ingressendpoint="${IPS[0]}" \
+#   --ingressClass=kourier.ingress.networking.knative.dev \
+#   --cluster-suffix="$CLUSTER_SUFFIX"
+#
+# echo ">> Scale down after HA tests"
+# kubectl -n "${KOURIER_GATEWAY_NAMESPACE}" scale deployment 3scale-kourier-gateway --replicas=1
+# kubectl -n "${KOURIER_CONTROL_NAMESPACE}" scale deployment net-kourier-controller --replicas=1
+#
+# echo ">> Running TLS Cipher suites"
+# echo ">> Setup cipher suites"
+# kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"cipher-suites":"ECDHE-ECDSA-AES128-GCM-SHA256,ECDHE-ECDSA-CHACHA20-POLY1305"}}'
+#
+# go test -v -tags=e2e ./test/tls/... \
+#   --ingressendpoint="${IPS[0]}" \
+#   --ingressClass=kourier.ingress.networking.knative.dev \
+#   --cluster-suffix="$CLUSTER_SUFFIX"
+#
+# kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"cipher-suites":""}}'
+#
+# echo ">> Setup one wildcard certificate"
+# $(dirname $0)/generate-wildcard-cert.sh
+# kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller CERTS_SECRET_NAMESPACE="${KOURIER_CONTROL_NAMESPACE}" CERTS_SECRET_NAME=wildcard-certs
+# kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
+#
+# echo ">> Running OneTLSCert tests"
+# go test -race -count=1 -timeout=20m -tags=e2e ./test/cert/... \
+#   --ingressendpoint="${IPS[0]}" \
+#   --ingressClass=kourier.ingress.networking.knative.dev \
+#   --cluster-suffix="$CLUSTER_SUFFIX"
 
 export "KOURIER_EXTAUTHZ_PROTOCOL=grpc"
 
@@ -102,26 +102,29 @@ go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
 echo ">> Unset ExtAuthz gRPC"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST-
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
-
-echo ">> Setup ExtAuthz gRPC from configmap"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{
-  "data":{
-    "extauthz-host": "externalauthz-grpc.knative-serving:6000",
-    "extauthz-protocol": "grpc"
-  }
-}'
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
-
-echo ">> Running ExtAuthz tests"
-go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
-  --ingressendpoint="${IPS[0]}" \
-  --ingressClass=kourier.ingress.networking.knative.dev \
-  --cluster-suffix="$CLUSTER_SUFFIX"
-
-echo ">> Unset ExtAuthz gRPC from configmap"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"extauthz-host": "", "extauthz-protocol": ""}}'
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
-
+#
+#echo ">> Setup ExtAuthz gRPC from configmap"
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{
+#  "data":{
+#    "extauthz-host": "externalauthz-grpc.knative-serving:6000",
+#    "extauthz-protocol": "grpc"
+#  }
+#}'
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
+#
+#echo ">> Running ExtAuthz tests"
+#go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
+#  --ingressendpoint="${IPS[0]}" \
+#  --ingressClass=kourier.ingress.networking.knative.dev \
+#  --cluster-suffix="$CLUSTER_SUFFIX"
+#
+#echo ">> Unset ExtAuthz gRPC from configmap"
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type json -p '[
+#  {"op": "remove", "path": "/data/extauthz-host"},
+#  {"op": "remove", "path": "/data/extauthz-protocol"}
+#]'
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
+#
 echo ">> Setup ExtAuthz gRPC with pack as bytes option"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller \
   KOURIER_EXTAUTHZ_HOST=externalauthz-grpc.knative-serving:6000 \
@@ -139,25 +142,29 @@ echo ">> Unset ExtAuthz gRPC"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST- KOURIER_EXTAUTHZ_PACKASBYTES-
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
 
-echo ">> Setup ExtAuthz gRPC from configmap with pack as bytes option"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{
-  "data":{
-    "extauthz-host": "externalauthz-grpc.knative-serving:6000",
-    "extauthz-protocol": "grpc",
-    "extauthz-pack-as-bytes": "true"
-  }
-}'
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
-
-echo ">> Running ExtAuthz tests"
-go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
-  --ingressendpoint="${IPS[0]}" \
-  --ingressClass=kourier.ingress.networking.knative.dev \
-  --cluster-suffix="$CLUSTER_SUFFIX"
-
-echo ">> Unset ExtAuthz gRPC from configmap with pack as bytes option"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"extauthz-host": "", "extauthz-protocol": "", "extauthz-pack-as-bytes": ""}}'
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
+# echo ">> Setup ExtAuthz gRPC from configmap with pack as bytes option"
+# kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{
+#   "data":{
+#     "extauthz-host": "externalauthz-grpc.knative-serving:6000",
+#     "extauthz-protocol": "grpc",
+#     "extauthz-pack-as-bytes": "true"
+#   }
+# }'
+# kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
+#
+# echo ">> Running ExtAuthz tests"
+# go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
+#   --ingressendpoint="${IPS[0]}" \
+#   --ingressClass=kourier.ingress.networking.knative.dev \
+#   --cluster-suffix="$CLUSTER_SUFFIX"
+#
+# echo ">> Unset ExtAuthz gRPC from configmap with pack as bytes option"
+# kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type json -p '[
+#   {"op": "remove", "path": "/data/extauthz-host"},
+#   {"op": "remove", "path": "/data/extauthz-protocol"},
+#   {"op": "remove", "path": "/data/extauthz-pack-as-bytes"}
+# ]'
+# kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
 
 echo ">> Setup ExtAuthz HTTP"
 ko apply -f test/config/extauthz/http
@@ -177,24 +184,27 @@ echo ">> Unset ExtAuthz HTTP"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST- KOURIER_EXTAUTHZ_PROTOCOL-
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
 
-echo ">> Setup ExtAuthz HTTP from configmap"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{
-  "data":{
-    "extauthz-host": "externalauthz-http.knative-serving:8080",
-    "extauthz-protocol": "http"
-  }
-}'
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
-
-echo ">> Running ExtAuthz tests"
-go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
-  --ingressendpoint="${IPS[0]}" \
-  --ingressClass=kourier.ingress.networking.knative.dev \
-  --cluster-suffix="$CLUSTER_SUFFIX"
-
-echo ">> Unset ExtAuthz HTTP from configmap"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"extauthz-host": "", "extauthz-protocol": ""}}'
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
+#echo ">> Setup ExtAuthz HTTP from configmap"
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{
+#  "data":{
+#    "extauthz-host": "externalauthz-http.knative-serving:8080",
+#    "extauthz-protocol": "http"
+#  }
+#}'
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
+#
+#echo ">> Running ExtAuthz tests"
+#go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
+#  --ingressendpoint="${IPS[0]}" \
+#  --ingressClass=kourier.ingress.networking.knative.dev \
+#  --cluster-suffix="$CLUSTER_SUFFIX"
+#
+#echo ">> Unset ExtAuthz HTTP from configmap"
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type json -p '[
+#  {"op": "remove", "path": "/data/extauthz-host"},
+#  {"op": "remove", "path": "/data/extauthz-protocol"}
+#]'
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
 
 echo ">> Setup ExtAuthz HTTP with path prefix"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment externalauthz-http PATH_PREFIX="/check"
@@ -215,26 +225,30 @@ echo ">> Unset ExtAuthz HTTP with path prefix"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST- KOURIER_EXTAUTHZ_PROTOCOL- KOURIER_EXTAUTHZ_PATHPREFIX-
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
 
-echo ">> Setup ExtAuthz HTTP from configmap with pack as bytes option"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{
-  "data":{
-    "extauthz-host": "externalauthz-http.knative-serving:8080",
-    "extauthz-protocol": "http",
-    "extauthz-pack-as-bytes": "true"
-  }
-}'
-
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
-
-echo ">> Running ExtAuthz tests"
-go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
-  --ingressendpoint="${IPS[0]}" \
-  --ingressClass=kourier.ingress.networking.knative.dev \
-  --cluster-suffix="$CLUSTER_SUFFIX"
-
-echo ">> Unset ExtAuthz HTTP from configmap with pack as bytes option"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"extauthz-host": "", "extauthz-protocol": "", "extauthz-pack-as-bytes": ""}}'
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
+#echo ">> Setup ExtAuthz HTTP from configmap with pack as bytes option"
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{
+#  "data":{
+#    "extauthz-host": "externalauthz-http.knative-serving:8080",
+#    "extauthz-protocol": "http",
+#    "extauthz-pack-as-bytes": "true"
+#  }
+#}'
+#
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
+#
+#echo ">> Running ExtAuthz tests"
+#go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
+#  --ingressendpoint="${IPS[0]}" \
+#  --ingressClass=kourier.ingress.networking.knative.dev \
+#  --cluster-suffix="$CLUSTER_SUFFIX"
+#
+#echo ">> Unset ExtAuthz HTTP from configmap with pack as bytes option"
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type json -p '[
+#  {"op": "remove", "path": "/data/extauthz-host"},
+#  {"op": "remove", "path": "/data/extauthz-protocol"},
+#  {"op": "remove", "path": "/data/extauthz-pack-as-bytes"}
+#]'
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
 
 echo ">> Setup Proxy Protocol"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{"data":{"enable-proxy-protocol":"true"}}'

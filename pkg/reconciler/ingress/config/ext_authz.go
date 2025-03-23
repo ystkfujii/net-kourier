@@ -75,11 +75,20 @@ type externalAuthzConfig struct {
 	Host             string
 	Port             uint32
 	FailureModeAllow bool
-	MaxRequestBytes  uint32           `default:"8192"`
-	Timeout          int              `default:"2000"`
-	Protocol         extAuthzProtocol `default:"grpc"`
-	PackAsBytes      bool             `default:"false"`
+	MaxRequestBytes  uint32
+	Timeout          int
+	Protocol         extAuthzProtocol
+	PackAsBytes      bool
 	PathPrefix       string
+}
+
+func defaultExternalAuthzConfig() externalAuthzConfig {
+	return externalAuthzConfig{
+		MaxRequestBytes: 8192,
+		Timeout:         2000,
+		Protocol:        extAuthzProtocolGRPC,
+		PackAsBytes:     false,
+	}
 }
 
 const extAuthzClusterTypedExtensionProtocolOptionsHTTP = "envoy.extensions.upstreams.http.v3.HttpProtocolOptions"
