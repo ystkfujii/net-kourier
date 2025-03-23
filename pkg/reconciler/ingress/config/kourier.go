@@ -153,10 +153,12 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 
 		// For backward compatibility, if KOURIER_EXTAUTHZ_HOST is set, use it.
 		if host = os.Getenv("KOURIER_EXTAUTHZ_HOST"); host != "" {
+			fmt.Printf("DEBUG: asExternalAuthz host: %+v\n", host)
 			if err := envconfig.Process("KOURIER_EXTAUTHZ", &config); err != nil {
 				return fmt.Errorf("failed to parse config: %w", err)
 			}
 		} else {
+			fmt.Printf("DEBUG: asExternalAuthz data[extauthzHostKey]: %+v\n", data[extauthzHostKey])
 			host = data[extauthzHostKey]
 			if host == "" {
 				return nil
@@ -203,7 +205,7 @@ func asExternalAuthz(externalAuthz *ExternalAuthz) cm.ParseFunc {
 		externalAuthz.Enabled = true
 		externalAuthz.Config = config
 
-		fmt.Printf("externalAuthz: %+v\n", externalAuthz)
+		fmt.Printf("DEBUG: externalAuthz: %+v\n", externalAuthz)
 
 		return nil
 	}

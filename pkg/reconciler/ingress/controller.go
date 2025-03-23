@@ -75,6 +75,7 @@ var isKourierIngress = reconciler.AnnotationFilterFunc(
 )
 
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+	fmt.Println("DEBUG: NewController")
 	logger := logging.FromContext(ctx)
 
 	kubernetesClient := kubeclient.Get(ctx)
