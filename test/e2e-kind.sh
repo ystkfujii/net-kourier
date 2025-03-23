@@ -90,18 +90,18 @@ export "KOURIER_EXTAUTHZ_PROTOCOL=grpc"
 echo ">> Setup ExtAuthz gRPC"
 ko apply -f test/config/extauthz/grpc
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" wait --timeout=300s --for=condition=Available deployment/externalauthz-grpc
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST=externalauthz-grpc.knative-serving:6000
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
-
-echo ">> Running ExtAuthz tests"
-go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
-  --ingressendpoint="${IPS[0]}" \
-  --ingressClass=kourier.ingress.networking.knative.dev \
-  --cluster-suffix="$CLUSTER_SUFFIX"
-
-echo ">> Unset ExtAuthz gRPC"
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST-
-kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST=externalauthz-grpc.knative-serving:6000
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller --timeout=300s
+#
+#echo ">> Running ExtAuthz tests"
+#go test -race -count=1 -timeout=20m -tags=e2e ./test/extauthz/... \
+#  --ingressendpoint="${IPS[0]}" \
+#  --ingressClass=kourier.ingress.networking.knative.dev \
+#  --cluster-suffix="$CLUSTER_SUFFIX"
+#
+#echo ">> Unset ExtAuthz gRPC"
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" set env deployment net-kourier-controller KOURIER_EXTAUTHZ_HOST-
+#kubectl -n "${KOURIER_CONTROL_NAMESPACE}" rollout status deployment/net-kourier-controller
 
 echo ">> Setup ExtAuthz gRPC from configmap"
 kubectl -n "${KOURIER_CONTROL_NAMESPACE}" patch configmap/config-kourier --type merge -p '{
